@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import ast
+from pathlib import Path
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 
 # ============================================================
@@ -135,8 +138,47 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
+    clustered_path = Path("data_jobs_clustered.csv")
+    source_path = Path("data_jobs_cleaned2.csv")
+    data_path = clustered_path if clustered_path.exists() else source_path
+    df = pd.read_csv(data_path)
 
-    df = pd.read_csv("data_jobs_clustered.csv")
+    if "avg_salary" not in df.columns:
+        df["avg_salary"] = (
+            pd.to_numeric(df["salary_minimum"], errors="coerce")
+            + pd.to_numeric(df["salary_maximum"], errors="coerce")
+        ) / 2
+
+    if "cluster" not in df.columns:
+        experience_mapping = {
+            "Freshers / Entry Level": 0,
+            "Mid-Senior Level": 1
+        }
+        cluster_features = pd.DataFrame(index=df.index)
+        cluster_features["avg_salary"] = pd.to_numeric(
+            df["avg_salary"], errors="coerce"
+        )
+        cluster_features["career_growth_index"] = pd.to_numeric(
+            df["career_growth_index"], errors="coerce"
+        )
+        cluster_features["experience_level_numeric"] = (
+            df["experience_level"].astype(str).str.strip().map(experience_mapping)
+        )
+        cluster_features["skill_count"] = pd.to_numeric(
+            df["skill_count"], errors="coerce"
+        )
+
+        valid_rows = cluster_features.notna().all(axis=1)
+        df["cluster"] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+        if valid_rows.any():
+            scaled_features = StandardScaler().fit_transform(
+                cluster_features.loc[valid_rows]
+            )
+            df.loc[valid_rows, "cluster"] = KMeans(
+                n_clusters=4,
+                random_state=42,
+                n_init=10
+            ).fit_predict(scaled_features)
 
     numeric_columns = [
         "salary_minimum",
@@ -158,7 +200,8 @@ def load_data():
     return df
 
 
-df = load_data()
+with st.spinner("Loading job data and preparing clusters..."):
+    df = load_data()
 
 
 # ============================================================

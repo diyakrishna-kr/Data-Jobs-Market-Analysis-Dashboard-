@@ -37,6 +37,13 @@ Start the dashboard:
 
 Streamlit will print a local URL, usually `http://localhost:8501`, to open in your browser.
 
+## Deploy online
+
+1. Commit and push the project to GitHub.
+2. Open [Streamlit Community Cloud](https://share.streamlit.io/) and connect your GitHub account.
+3. Choose **Create app**, select this repository and the `master` branch, and set the app file to `dash.py`.
+4. Deploy the app. The cloud app installs packages from `requirements.txt` and creates the job clusters from `data_jobs_cleaned2.csv` on startup if `data_jobs_clustered.csv` is not present.
+
 ## Project files
 
 - `dash.py` — Streamlit dashboard
